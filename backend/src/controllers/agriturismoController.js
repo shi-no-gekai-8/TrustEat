@@ -1,6 +1,8 @@
 import Agriturismo from "../models/Agriturismo.js";
 import Device from "../models/Device.js";
-import { hashPassword } from "../utils/password.js";
+import SensorData from "../models/SensorData.js";
+import { hashPassword, verifyPassword } from "../utils/password.js";
+import { generateToken } from "../utils/jwt.js";
 
 export async function registerAgriturismo(req, res) {
   console.log("--- 🟢 INIZIO RICHIESTA REGISTRAZIONE ---");
@@ -104,6 +106,184 @@ export async function registerAgriturismo(req, res) {
       });
     }
 
+    return res.status(500).json({ error: "Errore server" });
+  }
+}
+
+export async function loginAgriturismo(req, res) {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email e password richiesti" });
+    }
+
+    const agriturismo = await Agriturismo.findOne({ email });
+    if (!agriturismo) {
+      return res.status(401).json({ error: "Credenziali non valide" });
+    }
+
+    const isValid = await verifyPassword(password, agriturismo.passwordHash);
+    if (!isValid) {
+      return res.status(401).json({ error: "Credenziali non valide" });
+    }
+
+    const token = generateToken({
+      id: agriturismo._id.toString(),
+      email: agriturismo.email,
+    });
+
+    return res.json({
+      message: "Login effettuato con successo",
+      token,
+      agriturismo: {
+        id: agriturismo._id,
+        name: agriturismo.name,
+        email: agriturismo.email,
+        address: agriturismo.address,
+        ownerName: agriturismo.ownerName,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Errore login:", error);
+    return res.status(500).json({ error: "Errore server" });
+  }
+}
+
+export async function getDashboardData(req, res) {
+  try {
+    const agriturismoId = req.params.id;
+
+    // Verifica che l'utente autenticato stia accedendo ai propri dati
+    if (agriturismoId !== req.user.id) {
+      return res
+        .status(403)
+        .json({ error: "Non autorizzato ad accedere a questa risorsa" });
+    }
+
+    // Recupera l'agriturismo con tutti i device popolati
+    const agriturismo = await Agriturismo.findById(agriturismoId)
+      .populate("devices")
+      .select("-passwordHash");
+
+    if (!agriturismo) {
+      return res.status(404).json({ error: "Agriturismo non trovato" });
+    }
+
+    // Recupera le statistiche dei device
+    const devicesWithStats = await Promise.all(
+      agriturismo.devices.map(async (device) => {
+        // Ultimi dati del sensore
+        const latestData = await SensorData.findOne({ deviceId: device._id })
+          .sort({ timestamp: -1 })
+          .limit(1);
+
+        // Dati delle ultime 24 ore
+        const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const recentData = await SensorData.find({
+          deviceId: device._id,
+          timestamp: { $gte: last24Hours },
+        }).sort({ timestamp: -1 });
+
+        // Calcola medie
+        const avgTemp =
+          recentData.length > 0
+            ? recentData.reduce((sum, d) => sum + d.temperature, 0) /
+              recentData.length
+            : null;
+        const avgHum =
+          recentData.length > 0
+            ? recentData.reduce((sum, d) => sum + d.humidity, 0) /
+              recentData.length
+            : null;
+
+        return {
+          _id: device._id,
+          deviceId: device.deviceId,
+          status: device.status,
+          lastSeen: device.lastSeen,
+          integrityViolations: device.integrityViolations,
+          latestReading: latestData
+            ? {
+                temperature: latestData.temperature,
+                humidity: latestData.humidity,
+                timestamp: latestData.timestamp,
+              }
+            : null,
+          stats24h: {
+            dataPoints: recentData.length,
+            avgTemperature: avgTemp ? avgTemp.toFixed(1) : null,
+            avgHumidity: avgHum ? avgHum.toFixed(1) : null,
+          },
+        };
+      }),
+    );
+
+    return res.json({
+      agriturismo: {
+        id: agriturismo._id,
+        name: agriturismo.name,
+        description: agriturismo.description,
+        address: agriturismo.address,
+        ownerName: agriturismo.ownerName,
+        email: agriturismo.email,
+        isActive: agriturismo.isActive,
+        isVerified: agriturismo.isVerified,
+        lastReportAt: agriturismo.lastReportAt,
+        missedReports: agriturismo.missedReports,
+        integrityViolations: agriturismo.integrityViolations,
+      },
+      devices: devicesWithStats,
+      summary: {
+        totalDevices: agriturismo.devices.length,
+        activeDevices: devicesWithStats.filter((d) => d.status === "active")
+          .length,
+        pendingDevices: devicesWithStats.filter((d) => d.status === "pending")
+          .length,
+        totalIntegrityViolations: devicesWithStats.reduce(
+          (sum, d) => sum + d.integrityViolations,
+          0,
+        ),
+      },
+    });
+  } catch (error) {
+    console.error("❌ Errore getDashboardData:", error);
+    return res.status(500).json({ error: "Errore server" });
+  }
+}
+
+export async function getDeviceHistory(req, res) {
+  try {
+    const { deviceId } = req.params;
+    const { hours = 24 } = req.query;
+
+    const device = await Device.findById(deviceId);
+    if (!device) {
+      return res.status(404).json({ error: "Device non trovato" });
+    }
+
+    // Verifica ownership
+    if (device.agriturismoId.toString() !== req.user.id) {
+      return res.status(403).json({ error: "Non autorizzato" });
+    }
+
+    const timeRange = new Date(Date.now() - hours * 60 * 60 * 1000);
+    const data = await SensorData.find({
+      deviceId: device._id,
+      timestamp: { $gte: timeRange },
+    }).sort({ timestamp: 1 });
+
+    return res.json({
+      deviceId: device.deviceId,
+      dataPoints: data.length,
+      data: data.map((d) => ({
+        temperature: d.temperature,
+        humidity: d.humidity,
+        timestamp: d.timestamp,
+      })),
+    });
+  } catch (error) {
+    console.error("❌ Errore getDeviceHistory:", error);
     return res.status(500).json({ error: "Errore server" });
   }
 }

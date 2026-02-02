@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Building2,
   MapPin,
@@ -14,6 +15,7 @@ import {
 } from "lucide-react";
 
 const AgriturismoSignup = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -94,9 +96,7 @@ const AgriturismoSignup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    console.log("🔍 Avvio validazione form...");
     if (!validateForm()) {
-      console.log("❌ Validazione fallita:", error);
       return;
     }
 
@@ -105,49 +105,36 @@ const AgriturismoSignup = () => {
 
     try {
       const validDevices = devices.filter((d) => d.trim() !== "");
-      const payload = {
-        ...formData,
-        devices: validDevices,
-      };
 
-      console.log("🚀 Invio richiesta al backend...");
-      console.log("Payload inviato:", payload);
-
-      const response = await fetch(
-        "http://localhost:5000/api/agriturismi/register",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
+      const response = await fetch("/api/agriturismo/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
-
-      // Se il caricamento si blocca qui, il backend ha ricevuto la chiamata
-      // ma non ha mai eseguito res.json() o res.send()
-      console.log("📥 Risposta ricevuta dal server. Status:", response.status);
+        body: JSON.stringify({
+          ...formData,
+          devices: validDevices,
+        }),
+      });
 
       const data = await response.json();
-      console.log("📦 Dati JSON decodificati:", data);
 
       if (!response.ok) {
         throw new Error(data.error || "Errore durante la registrazione");
       }
 
-      console.log("✅ Registrazione completata con successo!");
+      // Salva il token nel localStorage
+      localStorage.setItem("token", data.token);
+
       setSuccess(true);
 
+      // Reindirizzamento dopo 2 secondi
       setTimeout(() => {
-        const targetUrl = `/dashboard/${data.agriturismoId}`;
-        console.log("Ti sto reindirizzando a:", targetUrl);
-        window.location.href = targetUrl;
+        navigate(`/dashboard/${data.agriturismoId}`);
       }, 2000);
     } catch (err) {
-      console.error("💥 Errore catturato nel catch:", err.message);
       setError(err.message);
     } finally {
-      console.log("🏁 Operazione conclusa (loading = false)");
       setLoading(false);
     }
   };
