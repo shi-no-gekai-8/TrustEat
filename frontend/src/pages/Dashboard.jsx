@@ -15,6 +15,7 @@ import {
   MapPin,
   User,
   Mail,
+  MessageSquare, // <--- HO AGGIUNTO QUESTA ICONA
 } from "lucide-react";
 
 const Dashboard = () => {
@@ -71,7 +72,7 @@ const Dashboard = () => {
     // Auto-refresh ogni 30 secondi
     const interval = setInterval(() => {
       fetchDashboardData();
-    }, 30000);
+        }, 30000);
 
     return () => clearInterval(interval);
     // eslint-disable-next-line
@@ -84,6 +85,7 @@ const Dashboard = () => {
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user"); // Puliamo anche l'utente per sicurezza
     navigate("/login");
   };
 
@@ -172,7 +174,20 @@ const Dashboard = () => {
                 </p>
               </div>
             </div>
+            
+            {/* PULSANTI HEADER */}
             <div className="flex items-center space-x-3">
+              
+              {/* --- NUOVO BOTTONE BACHECA --- */}
+              <button
+                onClick={() => navigate("/bacheca")}
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition"
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span>Bacheca</span>
+              </button>
+              {/* ----------------------------- */}
+
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
@@ -183,6 +198,7 @@ const Dashboard = () => {
                   className={`w-5 h-5 ${refreshing ? "animate-spin" : ""}`}
                 />
               </button>
+              
               <button
                 onClick={handleLogout}
                 className="flex items-center space-x-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition"
