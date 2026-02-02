@@ -1,12 +1,17 @@
-const express = require("express");
-const cors = require("cors");
+import express from "express";
+import cors from "cors";
+import agriturismiRoutes from "./routes/agriturismo.routes.js";
 
-const testRoutes = require("./routes/test.routes");
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-app.use("/api/test", testRoutes);
+app.use((req, res, next) => {
+  console.log(`Richiesta ricevuta: ${req.method} ${req.url}`);
+  next();
+});
 
-module.exports = app;
+app.use("/api/agriturismi", agriturismiRoutes);
+
+export default app;
