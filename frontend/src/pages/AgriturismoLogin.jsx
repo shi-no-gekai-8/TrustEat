@@ -11,6 +11,8 @@ import {
   Sprout,
 } from "lucide-react";
 
+const PORT = process.env.PORT;
+
 const AgriturismoLogin = () => {
   const navigate = useNavigate();
 
@@ -29,7 +31,7 @@ const AgriturismoLogin = () => {
       ...prev,
       [name]: value,
     }));
-    setError(""); 
+    setError("");
   };
 
   const handleSubmit = async (e) => {
@@ -38,9 +40,8 @@ const AgriturismoLogin = () => {
     setError("");
 
     try {
-      // Nota: Assicurati che l'URL corrisponda alla tua rotta backend (5000)
       const response = await fetch(
-        "http://localhost:5002/api/agriturismi/login",
+        `http://localhost:${PORT}/api/agriturismi/login`,
         {
           method: "POST",
           headers: {
@@ -61,12 +62,11 @@ const AgriturismoLogin = () => {
 
       // ✨✨✨ LA MODIFICA MAGICA È QUI SOTTO ✨✨✨
       // Salviamo i dati dell'agriturismo così la Navbar sa chi sei!
-      localStorage.setItem("user", JSON.stringify(data.agriturismo)); 
+      localStorage.setItem("user", JSON.stringify(data.agriturismo));
       // ✨✨✨ FINE MODIFICA ✨✨✨
 
-      // ✅ 2. Reindirizza alla dashboard 
+      // ✅ 2. Reindirizza alla dashboard
       navigate(`/dashboard/${data.agriturismo.id}`);
-      
     } catch (err) {
       setError(err.message);
     } finally {

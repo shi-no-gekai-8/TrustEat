@@ -9,14 +9,12 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock,
-  TrendingUp,
   LogOut,
   RefreshCw,
   MapPin,
   User,
   Mail,
   ShieldCheck,
-  Info,
   Shield, // 👈 Icona per il Trust Index
   History, // 👈 Icona per Ultimo Report
   MessageSquare, // <--- HO AGGIUNTO QUESTA ICONA
