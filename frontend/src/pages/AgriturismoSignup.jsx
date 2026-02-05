@@ -106,16 +106,19 @@ const AgriturismoSignup = () => {
     try {
       const validDevices = devices.filter((d) => d.trim() !== "");
 
-      const response = await fetch("/api/agriturismo/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        "http://localhost:5002/api/agriturismi/register",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...formData,
+            devices: validDevices,
+          }),
         },
-        body: JSON.stringify({
-          ...formData,
-          devices: validDevices,
-        }),
-      });
+      );
 
       const data = await response.json();
 

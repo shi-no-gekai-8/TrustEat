@@ -40,7 +40,7 @@ const AgriturismoLogin = () => {
     try {
       // Nota: Assicurati che l'URL corrisponda alla tua rotta backend
       const response = await fetch(
-        "http://localhost:5000/api/agriturismi/login",
+        "http://localhost:5002/api/agriturismi/login",
         {
           method: "POST",
           headers: {

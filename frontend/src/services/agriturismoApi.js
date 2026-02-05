@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:5000/api/agriturismi";
+const API_URL = "http://localhost:5002/api/agriturismi";
 
 export const createAgriturismo = async (data) => {
   const response = await fetch(API_URL, {

@@ -34,12 +34,20 @@ const AgriturismoSchema = new mongoose.Schema(
         ref: "Device",
       },
     ],
-
-    // 📊 Trust metrics (aggregated)
     lastReportAt: Date,
     missedReports: {
       type: Number,
       default: 0,
+    },
+    trustIndex: {
+      type: Number,
+      default: 50,
+      min: 0,
+      max: 100,
+    },
+    lastTrustUpdate: {
+      type: Date,
+      default: Date.now,
     },
     integrityViolations: {
       type: Number,

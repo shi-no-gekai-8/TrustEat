@@ -1,6 +1,8 @@
 import crypto from "crypto";
 import Device from "../models/Device.js";
 import SensorData from "../models/SensorData.js";
+import { saveProofOnBlockchain } from "../services/fireflyService.js";
+import Agriturismo from "../models/Agriturismo.js";
 
 function verifySignature(publicKeyPEM, message, signatureBase64) {
   try {
@@ -17,10 +19,6 @@ function verifySignature(publicKeyPEM, message, signatureBase64) {
 export async function handleSensorMessage(topic, payload) {
   try {
     const data = JSON.parse(payload.toString());
-
-    // ---------------------------------------------------------
-    // GESTIONE BOOTSTRAP
-    // ---------------------------------------------------------
     if (topic === "devices/bootstrap") {
       const { deviceId, pubKey, nonce } = data;
       if (!deviceId || !pubKey || !nonce) {
@@ -29,19 +27,12 @@ export async function handleSensorMessage(topic, payload) {
       }
 
       let device = await Device.findOne({ deviceId });
-
-      // Se il device non esiste nel DB, lo ignoriamo (o potresti crearlo qui se volessi)
       if (!device) {
         console.warn(`❌ Device ${deviceId} non registrato nella piattaforma`);
         return;
       }
-
-      // MODIFICA 1: Aggiorniamo la chiave ANCHE se è già attivo.
-      // Questo gestisce i riavvii dell'ESP32 che generano nuove chiavi.
       const oldKey = device.publicKey;
       device.publicKey = pubKey;
-
-      // Se era pending lo attiviamo, altrimenti rimane active/revoked quello che era
       if (device.status === "pending") {
         device.status = "active";
         device.provisionedAt = new Date();
@@ -57,12 +48,33 @@ export async function handleSensorMessage(topic, payload) {
       } else {
         console.log(`🟢 Device ${deviceId} attivato/aggiornato`);
       }
+
+      console.log(
+        `🔗 [Blockchain] Avvio registrazione prova per ${deviceId}...`,
+      );
+      saveProofOnBlockchain(deviceId, pubKey)
+        .then(async (tx) => {
+          if (tx) {
+            console.log(`⛓️ [Blockchain] Prova salvata! TX ID: ${tx.id}`);
+            device.blockchainTxId = tx.id;
+            await device.save();
+            const agriturismo = await Agriturismo.findOne({
+              devices: device._id,
+            });
+            if (agriturismo) {
+              console.log(`🚀 [Trust] Boost a 100% per ${agriturismo.name}`);
+              agriturismo.trustIndex = 100;
+              agriturismo.lastTrustUpdate = new Date();
+              agriturismo.isVerified = true;
+              await agriturismo.save();
+            }
+          }
+        })
+        .catch((err) =>
+          console.error("⚠️ [Blockchain] Errore salvataggio:", err),
+        );
       return;
     }
-
-    // ---------------------------------------------------------
-    // GESTIONE DATI SENSORI
-    // ---------------------------------------------------------
     if (topic === "devices/data") {
       const { device: deviceId, temp, hum, ts, signature } = data;
 
@@ -71,47 +83,56 @@ export async function handleSensorMessage(topic, payload) {
         console.warn(`❌ Device ${deviceId} non attivo o non trovato`);
         return;
       }
-
-      // Controllo anti-replay
       const messageAge = Date.now() - ts * 1000;
       if (Math.abs(messageAge) > 60000) {
-        // 60 secondi tolleranza
         console.warn(`❌ Timestamp non valido (diff: ${messageAge}ms)`);
         return;
       }
 
-      // MODIFICA 2: Formattazione decimale forzata
-      // L'ESP32 usa String(val, 1), quindi dobbiamo assicurarci di avere ".0" se intero
       const tStr = parseFloat(temp).toFixed(1);
       const hStr = parseFloat(hum).toFixed(1);
-
-      // Ricostruiamo la stringa canonica ESATTAMENTE come sull'ESP32
       const canonical = `device=${deviceId}&temp=${tStr}&hum=${hStr}&ts=${ts}`;
-
-      // Debug utile: decommenta se la firma fallisce ancora
-      // console.log(`🔍 Verifica Backend: Stringa='${canonical}'`);
 
       const valid = verifySignature(deviceDoc.publicKey, canonical, signature);
 
       if (!valid) {
         console.warn(`❌ Firma non valida per ${deviceId}`);
-        // console.log("Chiave usata:", deviceDoc.publicKey); // Debug
         deviceDoc.integrityViolations =
           (deviceDoc.integrityViolations || 0) + 1;
         await deviceDoc.save();
+        const agriturismo = await Agriturismo.findOne({
+          devices: deviceDoc._id,
+        });
+        if (agriturismo) {
+          console.warn(
+            `📉 [Trust] Penalità applicata a ${agriturismo.name} per firma invalida (-20)`,
+          );
+          agriturismo.integrityViolations =
+            agriturismo.integrityViolations || 0;
+          agriturismo.trustIndex = Math.max(0, agriturismo.trustIndex - 20);
+          await agriturismo.save();
+        }
         return;
       }
 
-      // Salvataggio dati
       await SensorData.create({
         deviceId: deviceDoc._id,
-        temperature: temp, // Nel DB salviamo il numero puro
+        temperature: temp,
         humidity: hum,
         timestamp: new Date(ts * 1000),
       });
 
       deviceDoc.lastSeen = new Date();
       await deviceDoc.save();
+
+      const agriturismo = await Agriturismo.findOne({ devices: deviceDoc._id });
+      if (agriturismo) {
+        agriturismo.lastReportAt = new Date();
+        if (agriturismo.trustIndex < 100) {
+          agriturismo.trustIndex = Math.min(100, agriturismo.trustIndex + 1);
+        }
+        await agriturismo.save();
+      }
 
       console.log(`📥 Dati validi da ${deviceId}: ${tStr}°C, ${hStr}%`);
     }

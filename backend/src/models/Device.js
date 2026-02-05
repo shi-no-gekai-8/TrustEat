@@ -31,6 +31,7 @@ const DeviceSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    blockchainTxId: { type: String, default: null },
     provisionedAt: Date,
   },
   { timestamps: true },
