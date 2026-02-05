@@ -29,7 +29,7 @@ const AgriturismoLogin = () => {
       ...prev,
       [name]: value,
     }));
-    setError(""); // Pulisce l'errore quando l'utente scrive
+    setError(""); 
   };
 
   const handleSubmit = async (e) => {
@@ -38,7 +38,7 @@ const AgriturismoLogin = () => {
     setError("");
 
     try {
-      // Nota: Assicurati che l'URL corrisponda alla tua rotta backend
+      // Nota: Assicurati che l'URL corrisponda alla tua rotta backend (5000)
       const response = await fetch(
         "http://localhost:5002/api/agriturismi/login",
         {
@@ -59,9 +59,14 @@ const AgriturismoLogin = () => {
       // ✅ 1. Salva il token nel localStorage
       localStorage.setItem("token", data.token);
 
-      // ✅ 2. Reindirizza alla dashboard usando l'ID ricevuto dal backend
-      // Il controller restituiva: { agriturismo: { id: ... } }
+      // ✨✨✨ LA MODIFICA MAGICA È QUI SOTTO ✨✨✨
+      // Salviamo i dati dell'agriturismo così la Navbar sa chi sei!
+      localStorage.setItem("user", JSON.stringify(data.agriturismo)); 
+      // ✨✨✨ FINE MODIFICA ✨✨✨
+
+      // ✅ 2. Reindirizza alla dashboard 
       navigate(`/dashboard/${data.agriturismo.id}`);
+      
     } catch (err) {
       setError(err.message);
     } finally {
