@@ -75,8 +75,7 @@ const Dashboard = () => {
 
     const interval = setInterval(() => {
       fetchDashboardData();
-    }, 10000);
-        }, 30000);
+    }, 30000);
 
     return () => clearInterval(interval);
     // eslint-disable-next-line
@@ -202,23 +201,20 @@ const Dashboard = () => {
                     {data?.agriturismo?.name}
                   </h1>
 
-                  {/* 🔥 BADGE TRUST INDEX */}
+                  {/* Badge Trust Index */}
                   <div
                     className={`flex items-center space-x-1.5 px-3 py-0.5 rounded-full border ${trustInfo.color}`}
                   >
-                    <Shield className="w-4 h-4 fill-current opacity-20" />{" "}
-                    {/* Icona semi-piena */}
+                    <Shield className="w-4 h-4 fill-current opacity-20" />
                     <span className="text-sm font-bold">
                       Trust Index: {trustScore}/100
                     </span>
                   </div>
                 </div>
 
-                {/* Sottotitolo: Ultimo report e descrizione */}
+                {/* Sottotitolo */}
                 <div className="flex items-center space-x-4 mt-1 text-sm text-gray-500">
                   <span>Dashboard di monitoraggio</span>
-
-                  {/* 🔥 ULTIMO REPORT */}
                   <span className="hidden md:inline text-gray-300">|</span>
                   <div className="flex items-center space-x-1 text-gray-600">
                     <History className="w-3.5 h-3.5" />
@@ -234,12 +230,7 @@ const Dashboard = () => {
             </div>
 
             {/* Destra: Pulsanti azioni */}
-            <div className="flex items-center space-x-3 self-end md:self-center">
-            
-            {/* PULSANTI HEADER */}
             <div className="flex items-center space-x-3">
-              
-              {/* --- NUOVO BOTTONE BACHECA --- */}
               <button
                 onClick={() => navigate("/bacheca")}
                 className="flex items-center space-x-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition"
@@ -247,7 +238,6 @@ const Dashboard = () => {
                 <MessageSquare className="w-4 h-4" />
                 <span>Bacheca</span>
               </button>
-              {/* ----------------------------- */}
 
               <button
                 onClick={handleRefresh}
@@ -259,7 +249,7 @@ const Dashboard = () => {
                   className={`w-5 h-5 ${refreshing ? "animate-spin" : ""}`}
                 />
               </button>
-              
+
               <button
                 onClick={handleLogout}
                 className="flex items-center space-x-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition"
@@ -320,7 +310,6 @@ const Dashboard = () => {
               {data?.summary?.totalDevices || 0}
             </p>
           </div>
-
           <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-gray-500">Dispositivi Attivi</p>
@@ -330,7 +319,6 @@ const Dashboard = () => {
               {data?.summary?.activeDevices || 0}
             </p>
           </div>
-
           <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-gray-500">In Attesa</p>
@@ -340,7 +328,6 @@ const Dashboard = () => {
               {data?.summary?.pendingDevices || 0}
             </p>
           </div>
-
           <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-gray-500">Violazioni Integrità</p>
@@ -357,7 +344,6 @@ const Dashboard = () => {
           <h2 className="text-lg font-semibold text-gray-800 mb-6">
             Dispositivi IoT
           </h2>
-
           {data?.devices?.length === 0 ? (
             <div className="text-center py-12">
               <Cpu className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -371,7 +357,6 @@ const Dashboard = () => {
                   className="border border-gray-200 rounded-lg p-5 hover:shadow-md transition flex flex-col justify-between"
                 >
                   <div>
-                    {/* Device Header */}
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -394,37 +379,14 @@ const Dashboard = () => {
                       </span>
                     </div>
 
-                    {/* Banner Blockchain (come fatto prima) */}
-                    {!device.blockchainTxId && (
+                    {device.blockchainTxId && (
                       <div className="bg-green-50 border border-green-200 rounded-md p-3 mb-4">
                         <div className="flex items-start space-x-3">
                           <ShieldCheck className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                           <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm font-semibold text-green-800">
-                                Certificato su Blockchain
-                              </p>
-                              {/* Tooltip */}
-                              <div className="relative group">
-                                <Info className="w-4 h-4 text-green-600 cursor-help" />
-                                <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-72 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-lg z-10">
-                                  <p className="font-semibold mb-1">
-                                    Certificazione Blockchain
-                                  </p>
-                                  <p className="mb-2">
-                                    Dispositivo registrato su blockchain via
-                                    smart contract.
-                                  </p>
-                                  <ul className="list-disc list-inside space-y-1 ml-2">
-                                    <li>Immutabilità</li>
-                                    <li>Autenticità (ECDSA)</li>
-                                    <li>Non ripudiabilità</li>
-                                  </ul>
-                                  {/* Triangolino */}
-                                  <div className="absolute left-4 top-full w-0 h-0 border-l-4 border-l-transparent border-r-4 border-r-transparent border-t-4 border-t-gray-900"></div>
-                                </div>
-                              </div>
-                            </div>
+                            <p className="text-sm font-semibold text-green-800">
+                              Certificato su Blockchain
+                            </p>
                             <p className="text-xs text-green-700 mt-1 break-all font-mono">
                               TX: {device.blockchainTxId}
                             </p>
@@ -433,12 +395,8 @@ const Dashboard = () => {
                       </div>
                     )}
 
-                    {/* Latest Reading */}
                     {device.latestReading ? (
                       <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                        <p className="text-xs text-gray-500 mb-3">
-                          Ultima lettura
-                        </p>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="flex items-center space-x-2">
                             <Thermometer className="w-5 h-5 text-red-500" />
@@ -461,9 +419,6 @@ const Dashboard = () => {
                             </div>
                           </div>
                         </div>
-                        <p className="text-xs text-gray-400 mt-3">
-                          {formatDate(device.latestReading.timestamp)}
-                        </p>
                       </div>
                     ) : (
                       <div className="bg-gray-50 rounded-lg p-4 mb-4 text-center">
@@ -474,53 +429,12 @@ const Dashboard = () => {
                       </div>
                     )}
                   </div>
-
-                  {/* Stats & Footer */}
-                  <div>
-                    {device.stats24h?.dataPoints > 0 && (
-                      <div className="border-t border-gray-200 pt-4 mb-4">
-                        <div className="flex items-center space-x-2 mb-3">
-                          <TrendingUp className="w-4 h-4 text-green-600" />
-                          <p className="text-xs font-medium text-gray-700">
-                            Statistiche 24h
-                          </p>
-                        </div>
-                        <div className="grid grid-cols-3 gap-3 text-center">
-                          <div>
-                            <p className="text-lg font-semibold text-gray-900">
-                              {device.stats24h.dataPoints}
-                            </p>
-                            <p className="text-xs text-gray-500">Letture</p>
-                          </div>
-                          <div>
-                            <p className="text-lg font-semibold text-gray-900">
-                              {device.stats24h.avgTemperature}°C
-                            </p>
-                            <p className="text-xs text-gray-500">Temp. Media</p>
-                          </div>
-                          <div>
-                            <p className="text-lg font-semibold text-gray-900">
-                              {device.stats24h.avgHumidity}%
-                            </p>
-                            <p className="text-xs text-gray-500">Um. Media</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="border-t border-gray-200 pt-4 flex items-center justify-between text-xs text-gray-500">
-                      <div className="flex items-center space-x-1">
-                        <Clock className="w-3 h-3" />
-                        <span>
-                          Ultima attività: {formatDate(device.lastSeen)}
-                        </span>
-                      </div>
-                      {device.integrityViolations > 0 && (
-                        <div className="flex items-center space-x-1 text-red-600">
-                          <AlertTriangle className="w-3 h-3" />
-                          <span>{device.integrityViolations} violazioni</span>
-                        </div>
-                      )}
+                  <div className="border-t border-gray-200 pt-4 flex items-center justify-between text-xs text-gray-500">
+                    <div className="flex items-center space-x-1">
+                      <Clock className="w-3 h-3" />
+                      <span>
+                        Ultima attività: {formatDate(device.lastSeen)}
+                      </span>
                     </div>
                   </div>
                 </div>
