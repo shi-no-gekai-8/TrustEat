@@ -1,9 +1,13 @@
 import Agriturismo from "../models/Agriturismo.js";
 import Device from "../models/Device.js";
 import SensorData from "../models/SensorData.js";
+import Report from "../models/Report.js"; // 👈 IMPORTANTE: Importiamo i Report
 import { hashPassword, verifyPassword } from "../utils/password.js";
 import { generateToken } from "../utils/jwt.js";
 
+// ==================================================================
+// 1. REGISTRAZIONE AGRITURISMO
+// ==================================================================
 export async function registerAgriturismo(req, res) {
   console.log("--- 🟢 INIZIO RICHIESTA REGISTRAZIONE ---");
   console.log("📦 Dati ricevuti nel body:", JSON.stringify(req.body, null, 2));
@@ -29,7 +33,7 @@ export async function registerAgriturismo(req, res) {
       return res.status(400).json({ error: "Dati mancanti o non validi" });
     }
 
-    // 2. Controllo Email (Possibile punto di blocco se il DB è offline)
+    // 2. Controllo Email
     console.log("2️⃣ Controllo email esistente nel database...");
     const existing = await Agriturismo.findOne({ email });
     console.log("✅ Controllo email completato. Esiste già?", !!existing);
@@ -63,6 +67,7 @@ export async function registerAgriturismo(req, res) {
       ownerName,
       email,
       passwordHash,
+      trustIndex: 50, // Valore iniziale di default
     });
     console.log("✅ Agriturismo creato con ID:", agriturismo._id);
 
@@ -79,7 +84,7 @@ export async function registerAgriturismo(req, res) {
       }),
     );
 
-    // 7. Salvataggio finale
+    // 7. Salvataggio finale riferimenti
     console.log("7️⃣ Aggiornamento riferimenti dispositivi nell'agriturismo...");
     agriturismo.devices = deviceDocs.map((d) => d._id);
     await agriturismo.save();
@@ -96,20 +101,19 @@ export async function registerAgriturismo(req, res) {
       })),
     });
   } catch (error) {
-    console.error("❌ ERRORE CRITICO DURANTE LA REGISTRAZIONE:");
-    console.error(error); // Logga l'intero oggetto errore per vedere lo stack trace
-
+    console.error("❌ ERRORE CRITICO DURANTE LA REGISTRAZIONE:", error);
     if (error.name === "ValidationError") {
-      return res.status(400).json({
-        error: "Dati non validi",
-        details: error.message,
-      });
+      return res
+        .status(400)
+        .json({ error: "Dati non validi", details: error.message });
     }
-
     return res.status(500).json({ error: "Errore server" });
   }
 }
 
+// ==================================================================
+// 2. LOGIN AGRITURISMO
+// ==================================================================
 export async function loginAgriturismo(req, res) {
   try {
     const { email, password } = req.body;
@@ -150,18 +154,22 @@ export async function loginAgriturismo(req, res) {
   }
 }
 
+// ==================================================================
+// 3. DASHBOARD DATA (AGGIORNATA CON LOGICHE TRUST & REPORT)
+// ==================================================================
 export async function getDashboardData(req, res) {
   try {
     const agriturismoId = req.params.id;
 
-    // Verifica che l'utente autenticato stia accedendo ai propri dati
-    if (agriturismoId !== req.user.id) {
+    // 1. Verifica Autorizzazione
+    // Nota: Assicurati che il middleware 'authenticate' popoli req.user
+    if (req.user && agriturismoId !== req.user.id) {
       return res
         .status(403)
         .json({ error: "Non autorizzato ad accedere a questa risorsa" });
     }
 
-    // Recupera l'agriturismo con tutti i device popolati
+    // 2. Recupera l'Agriturismo
     const agriturismo = await Agriturismo.findById(agriturismoId)
       .populate("devices")
       .select("-passwordHash");
@@ -170,7 +178,7 @@ export async function getDashboardData(req, res) {
       return res.status(404).json({ error: "Agriturismo non trovato" });
     }
 
-    // Recupera le statistiche dei device
+    // 3. Recupera Dati e Statistiche per ogni Device
     const devicesWithStats = await Promise.all(
       agriturismo.devices.map(async (device) => {
         // Ultimi dati del sensore
@@ -178,23 +186,28 @@ export async function getDashboardData(req, res) {
           .sort({ timestamp: -1 })
           .limit(1);
 
-        // Dati delle ultime 24 ore
+        // Dati delle ultime 24 ore per le statistiche
         const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
         const recentData = await SensorData.find({
           deviceId: device._id,
           timestamp: { $gte: last24Hours },
         }).sort({ timestamp: -1 });
 
-        // Calcola medie
+        // Calcola medie (arrotondate a 1 decimale)
         const avgTemp =
           recentData.length > 0
-            ? recentData.reduce((sum, d) => sum + d.temperature, 0) /
-              recentData.length
+            ? (
+                recentData.reduce((sum, d) => sum + d.temperature, 0) /
+                recentData.length
+              ).toFixed(1)
             : null;
+
         const avgHum =
           recentData.length > 0
-            ? recentData.reduce((sum, d) => sum + d.humidity, 0) /
-              recentData.length
+            ? (
+                recentData.reduce((sum, d) => sum + d.humidity, 0) /
+                recentData.length
+              ).toFixed(1)
             : null;
 
         return {
@@ -202,7 +215,9 @@ export async function getDashboardData(req, res) {
           deviceId: device.deviceId,
           status: device.status,
           lastSeen: device.lastSeen,
-          integrityViolations: device.integrityViolations,
+          integrityViolations: device.integrityViolations || 0,
+          blockchainTxId: device.blockchainTxId, // 🛡️ FONDAMENTALE PER IL FRONTEND
+
           latestReading: latestData
             ? {
                 temperature: latestData.temperature,
@@ -210,15 +225,27 @@ export async function getDashboardData(req, res) {
                 timestamp: latestData.timestamp,
               }
             : null,
+
           stats24h: {
             dataPoints: recentData.length,
-            avgTemperature: avgTemp ? avgTemp.toFixed(1) : null,
-            avgHumidity: avgHum ? avgHum.toFixed(1) : null,
+            avgTemperature: avgTemp,
+            avgHumidity: avgHum,
           },
         };
       }),
     );
 
+    // 4. Recupera i Report Certificati (Ultimi 10)
+    const reports = await Report.find({ agriturismo: agriturismoId })
+      .sort({ timestamp: -1 })
+      .limit(10);
+
+    // 5. Calcola totali per Summary Cards
+    const totalViolations =
+      (agriturismo.integrityViolations || 0) +
+      devicesWithStats.reduce((sum, d) => sum + d.integrityViolations, 0);
+
+    // 6. Costruisci la risposta finale
     return res.json({
       agriturismo: {
         id: agriturismo._id,
@@ -229,22 +256,26 @@ export async function getDashboardData(req, res) {
         email: agriturismo.email,
         isActive: agriturismo.isActive,
         isVerified: agriturismo.isVerified,
+
+        // Trust Metrics
+        trustIndex: agriturismo.trustIndex,
         lastReportAt: agriturismo.lastReportAt,
         missedReports: agriturismo.missedReports,
         integrityViolations: agriturismo.integrityViolations,
       },
+
       devices: devicesWithStats,
+
       summary: {
         totalDevices: agriturismo.devices.length,
         activeDevices: devicesWithStats.filter((d) => d.status === "active")
           .length,
         pendingDevices: devicesWithStats.filter((d) => d.status === "pending")
           .length,
-        totalIntegrityViolations: devicesWithStats.reduce(
-          (sum, d) => sum + d.integrityViolations,
-          0,
-        ),
+        totalIntegrityViolations: totalViolations,
       },
+
+      reports: reports, // 👈 La lista che popolerà la nuova sezione
     });
   } catch (error) {
     console.error("❌ Errore getDashboardData:", error);
@@ -252,6 +283,9 @@ export async function getDashboardData(req, res) {
   }
 }
 
+// ==================================================================
+// 4. STORICO DISPOSITIVO (GRAFICI)
+// ==================================================================
 export async function getDeviceHistory(req, res) {
   try {
     const { deviceId } = req.params;
@@ -262,8 +296,8 @@ export async function getDeviceHistory(req, res) {
       return res.status(404).json({ error: "Device non trovato" });
     }
 
-    // Verifica ownership
-    if (device.agriturismoId.toString() !== req.user.id) {
+    // Verifica ownership (controlla sempre che req.user sia popolato dal middleware)
+    if (req.user && device.agriturismoId.toString() !== req.user.id) {
       return res.status(403).json({ error: "Non autorizzato" });
     }
 

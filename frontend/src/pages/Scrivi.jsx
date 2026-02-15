@@ -4,7 +4,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import NavbarUtente from "../components/NavbarUtente";
 
-const PORT = process.env.PORT;
+const PORT = process.env.REACT_APP_PORT;
 
 function Scrivi() {
   const [testo, setTesto] = useState("");

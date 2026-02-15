@@ -14,6 +14,8 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
+const PORT = process.env.REACT_APP_PORT;
+
 const AgriturismoSignup = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -107,7 +109,7 @@ const AgriturismoSignup = () => {
       const validDevices = devices.filter((d) => d.trim() !== "");
 
       const response = await fetch(
-        "http://localhost:5002/api/agriturismi/register",
+        `http://localhost:${PORT}/api/agriturismi/register`,
         {
           method: "POST",
           headers: {

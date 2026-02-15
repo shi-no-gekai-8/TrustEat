@@ -6,6 +6,7 @@ import cors from "cors";
 import agriturismiRoutes from "./routes/agriturismo.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import bachecaRoutes from "./routes/bacheca.routes.js";
+import reportRoutes from "./routes/report.routes.js";
 
 const app = express();
 
@@ -20,5 +21,6 @@ app.use((req, res, next) => {
 app.use("/api/agriturismi", agriturismiRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/bacheca", bachecaRoutes);
+app.use("/api/report", reportRoutes);
 
 export default app;

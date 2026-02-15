@@ -33,6 +33,11 @@ const DeviceSchema = new mongoose.Schema(
     },
     blockchainTxId: { type: String, default: null },
     provisionedAt: Date,
+
+    isWaitingForReport: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true },
 );

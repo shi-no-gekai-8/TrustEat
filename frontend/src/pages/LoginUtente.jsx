@@ -4,7 +4,7 @@ import { ethers } from "ethers";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-const PORT = process.env.PORT;
+const PORT = process.env.REACT_APP_PORT;
 
 function LoginUtente() {
   const [loading, setLoading] = useState(false);

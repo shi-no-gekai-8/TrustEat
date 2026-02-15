@@ -4,7 +4,7 @@ import axios from "axios";
 // IMPORTA LA NUOVA NAVBAR
 import NavbarUtente from "../components/NavbarUtente";
 
-const PORT = process.env.PORT;
+const PORT = process.env.REACT_APP_PORT;
 
 function Bacheca() {
   const [messaggi, setMessaggi] = useState([]);
