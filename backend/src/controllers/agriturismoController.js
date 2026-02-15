@@ -1,9 +1,10 @@
 import Agriturismo from "../models/Agriturismo.js";
 import Device from "../models/Device.js";
 import SensorData from "../models/SensorData.js";
+import jwt from "jsonwebtoken"; // <--- NUOVO IMPORT
 import { hashPassword, verifyPassword } from "../utils/password.js";
-import { generateToken } from "../utils/jwt.js";
 
+// 1. REGISTRAZIONE AGRITURISMO
 export async function registerAgriturismo(req, res) {
   console.log("--- 🟢 INIZIO RICHIESTA REGISTRAZIONE ---");
   console.log("📦 Dati ricevuti nel body:", JSON.stringify(req.body, null, 2));
@@ -12,7 +13,7 @@ export async function registerAgriturismo(req, res) {
     const { name, description, address, ownerName, email, password, devices } =
       req.body;
 
-    // 1. Test Validazione
+    // Test Validazione
     console.log("1️⃣ Verifica campi obbligatori...");
     if (
       !name ||
@@ -24,12 +25,12 @@ export async function registerAgriturismo(req, res) {
       devices.length === 0
     ) {
       console.warn(
-        "⚠️ Validazione fallita: Campi mancanti o devices non è un array.",
+        "⚠️ Validazione fallita: Campi mancanti o devices non è un array."
       );
       return res.status(400).json({ error: "Dati mancanti o non validi" });
     }
 
-    // 2. Controllo Email (Possibile punto di blocco se il DB è offline)
+    // Controllo Email
     console.log("2️⃣ Controllo email esistente nel database...");
     const existing = await Agriturismo.findOne({ email });
     console.log("✅ Controllo email completato. Esiste già?", !!existing);
@@ -38,7 +39,7 @@ export async function registerAgriturismo(req, res) {
       return res.status(409).json({ error: "Email già registrata" });
     }
 
-    // 3. Controllo Devices
+    // Controllo Devices
     console.log("3️⃣ Controllo duplicati dispositivi...");
     const existingDevices = await Device.find({ deviceId: { $in: devices } });
     console.log(`✅ Trovati ${existingDevices.length} dispositivi duplicati.`);
@@ -50,11 +51,11 @@ export async function registerAgriturismo(req, res) {
       });
     }
 
-    // 4. Hashing Password
+    // Hashing Password
     console.log("4️⃣ Esecuzione hashing password...");
     const passwordHash = await hashPassword(password);
 
-    // 5. Creazione Agriturismo
+    // Creazione Agriturismo
     console.log("5️⃣ Creazione record Agriturismo...");
     const agriturismo = await Agriturismo.create({
       name,
@@ -66,7 +67,7 @@ export async function registerAgriturismo(req, res) {
     });
     console.log("✅ Agriturismo creato con ID:", agriturismo._id);
 
-    // 6. Creazione Dispositivi
+    // Creazione Dispositivi
     console.log(`6️⃣ Creazione di ${devices.length} documenti Device...`);
     const deviceDocs = await Promise.all(
       devices.map((deviceId) => {
@@ -76,10 +77,10 @@ export async function registerAgriturismo(req, res) {
           agriturismoId: agriturismo._id,
           status: "pending",
         });
-      }),
+      })
     );
 
-    // 7. Salvataggio finale
+    // Salvataggio finale
     console.log("7️⃣ Aggiornamento riferimenti dispositivi nell'agriturismo...");
     agriturismo.devices = deviceDocs.map((d) => d._id);
     await agriturismo.save();
@@ -97,7 +98,7 @@ export async function registerAgriturismo(req, res) {
     });
   } catch (error) {
     console.error("❌ ERRORE CRITICO DURANTE LA REGISTRAZIONE:");
-    console.error(error); // Logga l'intero oggetto errore per vedere lo stack trace
+    console.error(error);
 
     if (error.name === "ValidationError") {
       return res.status(400).json({
@@ -110,6 +111,7 @@ export async function registerAgriturismo(req, res) {
   }
 }
 
+// 2. LOGIN AGRITURISMO (MODIFICATO PER USARE .ENV)
 export async function loginAgriturismo(req, res) {
   try {
     const { email, password } = req.body;
@@ -128,10 +130,18 @@ export async function loginAgriturismo(req, res) {
       return res.status(401).json({ error: "Credenziali non valide" });
     }
 
-    const token = generateToken({
-      id: agriturismo._id.toString(),
-      email: agriturismo.email,
-    });
+    // --- MODIFICA FONDAMENTALE QUI SOTTO ---
+    // Ora usiamo jwt.sign leggendo la chiave segreta dal file .env
+    const token = jwt.sign(
+      {
+        id: agriturismo._id.toString(),
+        email: agriturismo.email,
+        role: "agriturismo",
+      },
+      process.env.JWT_SECRET, // <--- LEGGE DAL .ENV
+      { expiresIn: "24h" }
+    );
+    // ---------------------------------------
 
     return res.json({
       message: "Login effettuato con successo",
@@ -150,6 +160,7 @@ export async function loginAgriturismo(req, res) {
   }
 }
 
+// 3. DATI DASHBOARD
 export async function getDashboardData(req, res) {
   try {
     const agriturismoId = req.params.id;
@@ -216,7 +227,7 @@ export async function getDashboardData(req, res) {
             avgHumidity: avgHum ? avgHum.toFixed(1) : null,
           },
         };
-      }),
+      })
     );
 
     return res.json({
@@ -242,7 +253,7 @@ export async function getDashboardData(req, res) {
           .length,
         totalIntegrityViolations: devicesWithStats.reduce(
           (sum, d) => sum + d.integrityViolations,
-          0,
+          0
         ),
       },
     });
@@ -252,6 +263,7 @@ export async function getDashboardData(req, res) {
   }
 }
 
+// 4. STORICO DISPOSITIVI
 export async function getDeviceHistory(req, res) {
   try {
     const { deviceId } = req.params;

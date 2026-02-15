@@ -2,20 +2,21 @@ import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import './App.css'; 
 
-// --- 1. Pagine Comuni ---
+
 import SelectionPage from './pages/SelectionPage';
 
-// --- 2. Le TUE Pagine (Utente) ---
+
 import LoginUtente from './pages/LoginUtente';
 import Bacheca from './pages/Bacheca';
 import Scrivi from './pages/Scrivi';
 
-// --- 3. Le Pagine del TUO AMICO (Agriturismo) ---
-// Ora includiamo i file veri che sono arrivati col merge
+
 import HomePage from "./pages/HomePage"; 
 import AgriturismoSignup from "./pages/AgriturismoSignup";
 import Dashboard from "./pages/Dashboard";
 import AgriturismoLogin from "./pages/AgriturismoLogin";
+
+import ChatPage from './pages/ChatePage';
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
           <Route path="/login-utente" element={<LoginUtente />} />
           <Route path="/bacheca" element={<Bacheca />} />
           <Route path="/scrivi" element={<Scrivi />} />
+          <Route path="/chat" element={<ChatPage />} />
 
           {/* --- ROTTE AGRITURISMO (Il lavoro del tuo amico) --- */}
           {/* La home dell'agriturismo la spostiamo su un percorso specifico */}

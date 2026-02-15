@@ -13,7 +13,7 @@ function NavbarUtente() {
   // Agriturismo: ha email/nome E NON ha wallet
   const isAgriturismo = user && (user.email || user.name) && !user.walletAddress;
 
-  // 3. RECUPERO ID "UNIVERSALE" (La correzione è qui!)
+  // 3. RECUPERO ID "UNIVERSALE"
   // Cerchiamo l'ID sia come "_id" che come "id". Se ne trova uno, lo usa.
   const agriturismoId = user ? (user._id || user.id) : null;
 
@@ -33,20 +33,23 @@ function NavbarUtente() {
       <div style={styles.menu}>
         <Link to="/bacheca" style={styles.link}>Bacheca</Link>
 
+        {/* --- NUOVO TASTO CHAT (Visibile a tutti) --- */}
+        <Link to="/chat" style={styles.link}>
+            💬 Chat & Amici
+        </Link>
+        {/* ------------------------------------------- */}
+
         {isCryptoUser && (
           <Link to="/scrivi" style={styles.link}>
             ✍️ Scrivi Segnalazione
           </Link>
         )}
 
-        {/* --- MODIFICA QUI SOTTO --- */}
-        {/* Ora usiamo la variabile agriturismoId che li cattura tutti */}
         {isAgriturismo && agriturismoId && (
           <Link to={`/dashboard/${agriturismoId}`} style={styles.dashboardBtn}>
             📊 Vai al Pannello
           </Link>
         )}
-        {/* ------------------------- */}
 
         <button onClick={logout} style={styles.button}>Esci</button>
       </div>
