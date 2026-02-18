@@ -1,11 +1,18 @@
-require("dotenv").config();
-const app = require("./app");
-const connectDB = require("./config/db");
+import "dotenv/config";
+import app from "./app.js";
+import { connectDB } from "./config/db.js";
+import "./mqtt/mqttClient.js";
+import { startTrustDecayJob } from "./services/trustDecayService.js";
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5002;
 
-connectDB();
+const startServer = async () => {
+  await connectDB();
+  startTrustDecayJob();
 
-app.listen(PORT, () => {
-  console.log(`TrustEat is running on port ${PORT}`);
-});
+  app.listen(PORT, () => {
+    console.log(`🚀 TrustEat is running on port ${PORT}`);
+  });
+};
+
+startServer();
