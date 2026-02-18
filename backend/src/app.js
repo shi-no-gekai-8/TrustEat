@@ -7,6 +7,8 @@ import agriturismiRoutes from "./routes/agriturismo.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import bachecaRoutes from "./routes/bacheca.routes.js";
 import reportRoutes from "./routes/report.routes.js";
+import connectionRoutes from "./routes/connection.routes.js";
+import chatRoutes from "./routes/chatRoutes.js";
 
 const app = express();
 
@@ -22,5 +24,7 @@ app.use("/api/agriturismi", agriturismiRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/bacheca", bachecaRoutes);
 app.use("/api/report", reportRoutes);
-
+// Rotte Connessioni (Amicizie)
+app.use("/api/connections", connectionRoutes);
+app.use("/api/chat", chatRoutes);
 export default app;
